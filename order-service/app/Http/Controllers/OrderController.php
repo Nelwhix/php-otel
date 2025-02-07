@@ -21,7 +21,8 @@ class OrderController extends Controller
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
         $amount = $this->calculateOrderAmount($validated, $products);
-        DB::transaction(function () use ($validated, $amount, $products) {
+        $order = null;
+        DB::transaction(function () use ($validated, $amount, $products, &$order) {
            $order = Order::create([
                'status' => OrderStatus::Processing,
                'amount' => $amount,
@@ -37,9 +38,8 @@ class OrderController extends Controller
                    'total_price' => $product->price * $item['quantity'],
                ]);
            }
-
-           ShipOrder::dispatch($order);
         });
+        ShipOrder::dispatch($order);
 
         return response()->json([
             'message' => 'Order created.',
